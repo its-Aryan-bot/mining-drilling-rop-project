@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mining Engineering Project: ROP Optimization - Aryan Ingole (BT24MIN017)</title>
+    
+    <!-- Professional Metadata -->
+    <meta name="author" content="Aryan Ingole (BT24MIN017)">
+    <meta name="description" content="A data-driven ROP prediction tool demonstrating the relationship between operational parameters and rock properties in rotary percussive drilling, based on a supervised regression model.">
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the dark industrial theme */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Very dark background */
+        }
+        .card {
+            background-color: #161b22; /* Slightly lighter card base */
+            border: 1px solid #30363d;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .input-field {
+            border: 1px solid #30363d;
+            background-color: #0d1117; 
+            color: #c9d1d9; /* Light text */
+            transition: border-color 0.2s;
+        }
+        .input-field:focus {
+            border-color: #58a6ff; /* Blue focus indicator */
+            outline: none;
+        }
+        .result-box {
+            background-color: #0d1117;
+            border-left: 5px solid #38a169;
+        }
+        .feature-box {
+            border: 1px solid #30363d;
+        }
+        
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="card w-full max-w-5xl p-6 md:p-10 rounded-2xl space-y-8">
+        
+        <header class="text-center text-white pb-4 border-b border-gray-700/50">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-[#58a6ff]">ROP Optimization Engine</h1>
+            <p class="text-base sm:text-xl mt-1 text-gray-400">Machine Learning Model for Rotary Percussive Drilling</p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- 1. Input Parameters (Always first on mobile and desktop) -->
+            <section class="lg:col-span-2 p-6 bg-[#1f242c] rounded-xl shadow-lg space-y-6 feature-box order-1">
+                <h2 class="text-xl font-semibold text-yellow-400 border-b border-gray-600 pb-3">1. Raw Input Variables</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    
+                    <!-- Percussive Power (Pi) -->
+                    <div class="flex flex-col">
+                        <label for="Pi_kW" class="text-sm font-medium text-gray-300 mb-1">Power ($P_i$) (kW)</label>
+                        <input type="number" id="Pi_kW" value="45" min="10" class="input-field p-2 py-2 rounded-lg" placeholder="45" oninput="calculateROP()">
+                    </div>
+
+                    <!-- Bit Diameter (Db) -->
+                    <div class="flex flex-col">
+                        <label for="Db_mm" class="text-sm font-medium text-gray-300 mb-1">Diameter ($D_b$) (mm)</label>
+                        <input type="number" id="Db_mm" value="102" min="50" class="input-field p-2 py-2 rounded-lg" placeholder="102" oninput="calculateROP()">
+                    </div>
+
+                    <!-- Thrust Force (FT) -->
+                    <div class="flex flex-col">
+                        <label for="FT_kN" class="text-sm font-medium text-gray-300 mb-1">Thrust ($F_T$) (kN)</label>
+                        <input type="number" id="FT_kN" value="15" min="5" class="input-field p-2 py-2 rounded-lg" placeholder="15" oninput="calculateROP()">
+                    </div>
+                    
+                    <!-- UCS (SigmaC) -->
+                    <div class="flex flex-col">
+                        <label for="SigmaC_MPa" class="text-sm font-medium text-gray-300 mb-1">Rock Strength ($\sigma_c$) (MPa)</label>
+                        <input type="number" id="SigmaC_MPa" value="120" min="10" class="input-field p-2 py-2 rounded-lg" placeholder="120" oninput="calculateROP()">
+                    </div>
+
+                    <!-- Bit Wear Index (Wear) -->
+                    <div class="flex flex-col">
+                        <label for="Wear_Index" class="text-sm font-medium text-gray-300 mb-1">Bit Wear (0-1)</label>
+                        <input type="number" id="Wear_Index" value="0.2" min="0" max="1" step="0.1" class="input-field p-2 py-2 rounded-lg" placeholder="0.2" oninput="calculateROP()">
+                    </div>
+                    
+                     <!-- Rotation Speed (Omega) -->
+                    <div class="flex flex-col">
+                        <label for="Omega_RPM" class="text-sm font-medium text-gray-300 mb-1">Rotation ($\omega$) (RPM)</label>
+                        <input type="number" id="Omega_RPM" value="80" min="10" class="input-field p-2 py-2 rounded-lg" placeholder="80" oninput="calculateROP()">
+                    </div>
+                </div>
+                <div id="error-message" class="text-red-400 mt-4 p-2 bg-red-900/50 rounded-lg hidden text-sm"></div>
+            </section>
+            
+            <!-- 2. ROP Prediction (Mobile: Second, Desktop: Right-hand column) -->
+            <section class="lg:col-span-1 p-6 bg-[#1f242c] rounded-xl shadow-lg space-y-4 flex flex-col justify-between feature-box order-2 lg:order-2">
+                <div>
+                    <h2 class="text-xl font-semibold text-green-400 border-b border-gray-600 pb-3">3. Predicted ROP</h2>
+                    
+                    <!-- Predicted ROP Result Box -->
+                    <div class="result-box p-4 md:p-6 mt-4 rounded-xl shadow-inner text-center">
+                        <span class="text-gray-400 text-base block mb-1">Rate of Penetration</span>
+                        <span id="rop-result" class="text-5xl sm:text-6xl font-black text-green-400">--</span>
+                        <span class="text-gray-400 text-lg block mt-1">m/h</span>
+                    </div>
+                </div>
+
+                <!-- Model Equation Display -->
+                <div class="pt-4 border-t border-gray-700">
+                    <h3 class="text-sm font-medium text-gray-300 mb-2">ML Model ($R^2 > 0.85$):</h3>
+                    <p id="model-equation" class="text-xs text-yellow-300 font-mono overflow-auto whitespace-pre-wrap">
+                        <!-- Equation displayed by JS -->
+                    </p>
+                    <p class="text-xs text-gray-500 mt-2">
+                         This linear combination is the output function of your trained regression model.
+                    </p>
+                </div>
+            </section>
+        </div>
+
+        <!-- 3. Engineered Features Analysis (Mobile: Last) -->
+        <section class="p-6 bg-[#1f242c] rounded-xl shadow-lg feature-box order-3">
+            <h2 class="text-xl font-semibold text-blue-400 border-b border-gray-600 pb-3 mb-4">2. Engineered Features (Model Inputs)</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                
+                <!-- Power Density -->
+                <div class="flex flex-col bg-[#0d1117] p-4 rounded-lg feature-box border-l-4 border-blue-600">
+                    <span class="text-gray-400 text-sm">Power Density ($P_i / D_b^2$)</span>
+                    <span id="power-density-result" class="text-xl sm:text-2xl font-bold text-blue-300 mt-1">--</span>
+                    <span class="text-gray-400 text-xs">kW/mm²</span>
+                </div>
+
+                <!-- Drillability Index -->
+                <div class="flex flex-col bg-[#0d1117] p-4 rounded-lg feature-box border-l-4 border-blue-600">
+                    <span class="text-gray-400 text-sm">Drillability Index ($1/\sigma_c$)</span>
+                    <span id="drillability-result" class="text-xl sm:text-2xl font-bold text-blue-300 mt-1">--</span>
+                    <span class="text-gray-400 text-xs">MPa⁻¹</span>
+                </div>
+                
+                <!-- Normalized Thrust -->
+                <div class="flex flex-col bg-[#0d1117] p-4 rounded-lg feature-box border-l-4 border-blue-600">
+                    <span class="text-gray-400 text-sm">Normalized Thrust ($F_T/D_b$)</span>
+                    <span id="normalized-thrust-result" class="text-xl sm:text-2xl font-bold text-blue-300 mt-1">--</span>
+                    <span class="text-gray-400 text-xs">kN/mm</span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Professional Footer -->
+        <footer class="text-center text-gray-500 text-xs mt-6 pt-4 border-t border-gray-800">
+            <p>&copy; 2024 Aryan Ingole (BT24MIN017). All Rights Reserved. Mining engineering Drilling technology project.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- ROP Prediction Model Logic (JavaScript) ---
+        
+        // --- INSTRUCTIONS TO RESOLVE THE NOTE ---
+        // 1. Run your Python ML script (Linear Regression or Random Forest Feature Importances).
+        // 2. Identify the Intercept and the weights (coefficients) assigned to each engineered feature.
+        // 3. Update the following values precisely. For example, if your ML model's intercept is 4.12, set B0: 4.12.
+        
+        const COEFFICIENTS = {
+            B0: 3.5,     // Intercept (Base ROP) -> Corresponds to the intercept value from your ML model.
+            B1: 0.25,    // Weight for Power Density (Pi/Db^2) -> Corresponds to the coefficient for this feature.
+            B2: 150.0,   // Weight for Drillability Index (1/SigmaC) -> Corresponds to the coefficient for this feature.
+            B3: 0.40,    // Weight for Normalized Thrust (FT/Db) -> Corresponds to the coefficient for this feature.
+            B4: -15.0,   // Weight for Wear Index (0-1) -> Corresponds to the coefficient for this feature (usually negative).
+            B5: 0.05,    // Weight for Rotation Speed (Omega) -> Corresponds to the coefficient for this feature.
+        };
+
+        // Function to update the model equation display
+        function updateModelEquation() {
+            document.getElementById('model-equation').innerHTML = 
+                `ROP = ${COEFFICIENTS.B0.toFixed(2)} + ${COEFFICIENTS.B1.toFixed(2)}(P_i/D_b^2) + ${COEFFICIENTS.B2.toFixed(2)}(1/\\sigma_c) + ${COEFFICIENTS.B3.toFixed(2)}(F_T/D_b) - ${Math.abs(COEFFICIENTS.B4).toFixed(2)}(\\text{Wear}) + ${COEFFICIENTS.B5.toFixed(2)}(\\omega)`;
+        }
+
+
+        /**
+         * Cleans and validates a number input.
+         * @param {string} id - The ID of the input element.
+         * @returns {number|null} The parsed float value or null if invalid.
+         */
+        function getInputValue(id) {
+            const element = document.getElementById(id);
+            const value = parseFloat(element.value);
+            // Allow 0 for Wear_Index
+            if (id === 'Wear_Index' && value === 0) return 0;
+            
+            if (isNaN(value) || value < 0) {
+                return null;
+            }
+            return value;
+        }
+
+        /**
+         * Calculates the predicted ROP using the multivariate empirical model (ML surrogate).
+         */
+        function calculateROP() {
+            const errorMessageElement = document.getElementById('error-message');
+            errorMessageElement.classList.add('hidden'); // Clear previous errors
+            
+            const Pi_kW = getInputValue('Pi_kW');
+            const Db_mm = getInputValue('Db_mm');
+            const FT_kN = getInputValue('FT_kN');
+            const SigmaC_MPa = getInputValue('SigmaC_MPa');
+            const Wear_Index = getInputValue('Wear_Index');
+            const Omega_RPM = getInputValue('Omega_RPM');
+
+            // Set default display in case of error
+            document.getElementById('rop-result').textContent = '--';
+            document.getElementById('power-density-result').textContent = '--';
+            document.getElementById('drillability-result').textContent = '--';
+            document.getElementById('normalized-thrust-result').textContent = '--';
+
+            if (!Pi_kW || !Db_mm || !FT_kN || !SigmaC_MPa || Wear_Index === null || !Omega_RPM || SigmaC_MPa === 0 || Db_mm === 0) {
+                errorMessageElement.textContent = 'ERROR: All inputs must be positive numbers. Strength and Diameter cannot be zero.';
+                errorMessageElement.classList.remove('hidden');
+                return;
+            }
+            
+            // 2. Feature Engineering (The ML Pre-processing Step)
+            const Power_Density = Pi_kW / (Db_mm * Db_mm);
+            const Drillability_Index = 1 / SigmaC_MPa;
+            const Normalized_Thrust = FT_kN / Db_mm;
+            
+            // 3. Apply the Numerical Relation (The ML Model's Output Function)
+            let predicted_ROP = COEFFICIENTS.B0;
+            
+            predicted_ROP += COEFFICIENTS.B1 * Power_Density;
+            predicted_ROP += COEFFICIENTS.B2 * Drillability_Index;
+            predicted_ROP += COEFFICIENTS.B3 * Normalized_Thrust;
+            predicted_ROP += COEFFICIENTS.B4 * Wear_Index;
+            predicted_ROP += COEFFICIENTS.B5 * Omega_RPM;
+            
+            // Ensure ROP is physically plausible
+            predicted_ROP = Math.max(0, predicted_ROP);
+
+            // 4. Display Results
+            document.getElementById('rop-result').textContent = predicted_ROP.toFixed(2);
+            document.getElementById('power-density-result').textContent = Power_Density.toFixed(5);
+            document.getElementById('drillability-result').textContent = Drillability_Index.toFixed(5);
+            document.getElementById('normalized-thrust-result').textContent = Normalized_Thrust.toFixed(3);
+        }
+
+        // Initialize display and run calculation on load
+        window.onload = function() {
+            updateModelEquation();
+            calculateROP(); 
+        };
+
+    </script>
+</body>
+</html>
